@@ -82,8 +82,33 @@ class ParallelReturningEvent(ReturningEvent, EmittedFlagBlockingEvent):
             return ret
 
     def reply(self, replying_component: Component, future: Future) -> None:
-        self._replies[replying_component] = future
+        if replying_component in self._replies.keys():
+            raise RuntimeError("A component tried replying twice to a parallel returning event")
+        else:
+            self._replies[replying_component] = future
 
+# class SequentialReturningEvent(ReturningEvent, EmittedFlagBlockingEvent):
+#     class _ReplyEntry:
+#         def __init__(self, previous, component, reply_future) -> None:
+#             self.previous = previous
+#             self.component = component
+#             self.reply_future = reply_future
+    
+#     def __init__(self, source_component) -> None:
+#         super().__init__(source_component)
+#         self._last_reply = None
+    
+#     def wait_for_reply(self) -> None:
+#         ...
+
+#     def is_replied(self) -> bool:
+#         ...
+
+#     def wait_for_previous(self, ):
+#         ...
+
+
+# if False: # Used instead of comment so that the code below is colored
 class SequentialReturningEvent(ReturningEvent, EmittedFlagBlockingEvent):
     def __init__(self, source_component) -> None:
         super().__init__(source_component)
@@ -117,15 +142,6 @@ class SequentialReturningEvent(ReturningEvent, EmittedFlagBlockingEvent):
         else:
             return False
 
-    def wait_for_previous(self):
-        """ Waits for the reply of the previous component, probably, to get the value of the previous reply and reply with a new value 
-        based on that previous reply
-        """
-        with self._replies_lock:
-            if len(self._replies) > 0:
-                wait_on = list(self._replies.values())[-1]
-        wait((wait_on,))
-
     def get_resolved_reply(self, if_no_replies = None) -> tuple[Any]:
         """ Returns the most recent currently resolved reply value mapped to its component. If the previous reply finishes with an exception then 
         the method raises the exception 
@@ -139,23 +155,48 @@ class SequentialReturningEvent(ReturningEvent, EmittedFlagBlockingEvent):
                 return (k, v.result(0))
         return if_no_replies
 
-    def previous_reply(self, if_no_replies = None) -> tuple[Any]:
-        """ Waits and returns reply value of the previously replied component mapped to the component. If it finishes with an exception the the method 
-        raises the exception
+    def previous_reply_and_component(self, component, if_no_replies = None) -> Any:
+        """ Returns reply of the previously replied component mapped to the component. If it finishes with an exception the the method 
+        raises the exception. 
+        
+        The "component" argument is the component calling the method. Specifying a different component you are risking to cause a deadlock. 
         """
-        self.wait_for_previous()
+        ret = if_no_replies
         with self._replies_lock:
-            ret = (list(self._replies.keys())[-1], list(self._replies.values())[-1].result(0),) if len(self._replies) > 0 else if_no_replies
-        return ret
+            if len(self._replies) > 0:
+                index = (list(self._replies.keys()).index(component) - 1) if component in self._replies.keys() else len(self._replies) - 1
+                for i in range(index, 0, -1):
+                    if not list(self._replies.values())[i].cancelled():
+                        ret = (list(self._replies.keys())[i], list(self._replies.values())[i],)
+                        break
+        return (None, ret,)
 
-    def set_reply(self, replying_component: Component, future: Future) -> None:
-        """ Cancels the previous pending reply future if there is so and sets the given one on top. If the event has finished replying then this 
+    def previous_reply(self, component, if_no_replies = None) -> Any:
+        """ Returns reply of the previously replied component. If it finishes with an exception the the method 
+        raises the exception. 
+        
+        The "component" argument is the component calling the method. Specifying a different component you are risking to cause a deadlock. 
+        """
+        with self._replies_lock:
+            ret = if_no_replies
+            if len(self._replies) > 0:
+                index = (list(self._replies.keys()).index(component) - 1) if component in self._replies.keys() else len(self._replies) - 1
+                for i in range(index, -1, -1):
+                    if not list(self._replies.values())[i].cancelled():
+                        ret = list(self._replies.values())[i]
+                        break
+            return ret
+
+    def reply(self, replying_component: Component, future: Future) -> None:
+        """ Adds a reply. If the event has finished replying then this 
         method raises runtime error, you can't reply after the event completed being emitted
         """
-        if self._emit_completed.is_set():
-            raise RuntimeError("Tried replying to sequential returning event that had completed being emitted")
-        else:
-            with self._replies_lock:
+        with self._replies_lock:
+            if self._emit_completed.is_set():
+                raise RuntimeError("Tried replying to sequential returning event that had completed being emitted")
+            elif replying_component in self._replies.keys():
+                raise RuntimeError("A component tried replying twice to a sequential returning event")
+            else:
                 if len(self._replies) >= 1 and list(self._replies.values())[-1].running(): 
                     list(self._replies.values())[-1].cancel()
-        self._replies[replying_component] = future
+                self._replies[replying_component] = future

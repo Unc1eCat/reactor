@@ -1,4 +1,5 @@
 from threading import current_thread
+from time import sleep
 from ..component import Component
 from ..event import Event
 from ..reactor import SimpleReactor
@@ -17,8 +18,14 @@ class MultiplyingComponent(Component):
     def on_event(self, reactor, event: MultiplyingEvent) -> None:
         def asnc():
             current_thread().name = str(self.multiplier)
-            return event.previous_reply() * self.multiplier
-        event.set_reply(self, reactor.run_async(asnc))
+            p = event.previous_reply(self)
+            i = 1 if p == None else p.result()
+            # print(f'{p} * {self} {list(event._replies.keys())}')
+            return i * self.multiplier
+        event.reply(self, reactor.run_async(asnc))
+
+    def __repr__(self) -> str:
+        return "M" + str(self.multiplier)
 
 reactor = SimpleReactor()
 
@@ -26,9 +33,11 @@ reactor.add_component(MultiplyingComponent(2))
 reactor.add_component(MultiplyingComponent(3))
 reactor.add_component(MultiplyingComponent(4))
 reactor.add_component(MultiplyingComponent(5))
+reactor.add_component(MultiplyingComponent(6))
+reactor.add_component(MultiplyingComponent(7))
 
 reactor.emit(e := MultiplyingEvent(None, 1))
 
 e.wait_for_reply()
 
-print(e.previous_reply())
+print(e.previous_reply(None).result())
