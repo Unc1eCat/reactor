@@ -155,8 +155,8 @@ class SequentialReturningEvent(ReturningEvent, EmittedFlagBlockingEvent):
                 return (k, v.result(0))
         return if_no_replies
 
-    def previous_reply_and_component(self, component, if_no_replies = None) -> Any:
-        """ Returns reply of the previously replied component mapped to the component. If it finishes with an exception the the method 
+    def previous_entry(self, component, if_no_replies = None) -> Any:
+        """ Returns reply future of the previously replied component mapped to the component. If it finishes with an exception the the method 
         raises the exception. 
         
         The "component" argument is the component calling the method. Specifying a different component you are risking to cause a deadlock. 
@@ -172,7 +172,7 @@ class SequentialReturningEvent(ReturningEvent, EmittedFlagBlockingEvent):
         return (None, ret,)
 
     def previous_reply(self, component, if_no_replies = None) -> Any:
-        """ Returns reply of the previously replied component. If it finishes with an exception the the method 
+        """ Awaits reply result of the previously replied component. If it finishes with an exception the the method 
         raises the exception. 
         
         The "component" argument is the component calling the method. Specifying a different component you are risking to cause a deadlock. 
@@ -183,7 +183,7 @@ class SequentialReturningEvent(ReturningEvent, EmittedFlagBlockingEvent):
                 index = (list(self._replies.keys()).index(component) - 1) if component in self._replies.keys() else len(self._replies) - 1
                 for i in range(index, -1, -1):
                     if not list(self._replies.values())[i].cancelled():
-                        ret = list(self._replies.values())[i]
+                        ret = list(self._replies.values())[i].result()
                         break
             return ret
 
