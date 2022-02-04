@@ -30,11 +30,6 @@ class MultiplyingComponent(Component):
 reactor = SimpleReactor()
 
 reactor.add_component(MultiplyingComponent(2))
-reactor.add_component(MultiplyingComponent(3))
-reactor.add_component(MultiplyingComponent(4))
-reactor.add_component(MultiplyingComponent(5))
-reactor.add_component(MultiplyingComponent(6))
-reactor.add_component(MultiplyingComponent(7))
 
 reactor.emit(e := MultiplyingEvent(None, 1))
 
