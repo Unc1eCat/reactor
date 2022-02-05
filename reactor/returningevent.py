@@ -191,6 +191,9 @@ class SequentialReturningEvent(ReturningEvent, EmittedFlagBlockingEvent):
         """ Adds a reply. If the event has finished replying then this 
         method raises runtime error, you can't reply after the event completed being emitted
         """
+        if not isinstance(future, Future):
+            raise TypeError('A reply to the sequential returning event was not a future')
+
         with self._replies_lock:
             if self._emit_completed.is_set():
                 raise RuntimeError("Tried replying to sequential returning event that had completed being emitted")

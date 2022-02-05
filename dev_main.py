@@ -1,1 +1,3 @@
-import reactor.draftchecks.test4
+import pytest as pt
+
+pt.main()
