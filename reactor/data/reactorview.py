@@ -9,18 +9,18 @@ from reactor.reactor.reactor import AbstractReactor
 
 class __BaseReactorView():
     def __init__(self, source: Any, reactor: AbstractReactor) -> None:
-        self.__dict__['_source'] = source
-        self.__dict__['_reactor'] = reactor
-        self.__dict__['_lock'] = Lock() # General lock to lock nearly in any situation
+        object.__setattr__(self, '_source', source)
+        object.__setattr__(self, '_reactor', reactor)
+        object.__setattr__(self, '_lock', Lock()) # General lock to lock nearly in any situation
 
     def __getattribute__(self, __name: str) -> Any:
-        return getattr(self.__dict__['_source'], __name)
+        return getattr(object.__getattribute__(self, '_source'), __name)
 
     def __setattr__(self, __name: str, __value: Any) -> None:
-        setattr(self.__dict__['_source'], __name, __value)
+        setattr(object.__getattribute__(self, '_source'), __name, __value)
         
     def __delattr__(self, __name: str) -> None:
-        delattr(self.__dict__['_source'], __name)
+        delattr(object.__getattribute__(self, '_source'), __name)
 
 class ReactorViewEvent(Event):
     def __init__(self, view, source, name) -> None:
@@ -43,9 +43,9 @@ class GetterReactorView(__BaseReactorView):
         __BaseReactorView.__init__(self, source, reactor)
 
     def __getattribute__(self, __name: str) -> Any:
-        with self.__dict__['_lock']:
-            source = self.__dict__['_source']
-            reactor = self.__dict__['_reactor']
+        with object.__getattribute__(self, '_lock'):
+            source = object.__getattribute__(self, '_source')
+            reactor = object.__getattribute__(self, '_reactor')
 
             ret = getattr(source, __name)
             reactor.emit(GetterReactorView(self, source, __name, ret))
@@ -67,9 +67,9 @@ class SetterReactorView(__BaseReactorView):
         __BaseReactorView.__init__(self, source, reactor)
 
     def __setattr__(self, __name: str, __value: Any) -> None:
-        with self.__dict__['_lock']:
-            source = self.__dict__['_source']
-            reactor = self.__dict__['_reactor']
+        with object.__getattribute__(self, '_lock'):
+            source = object.__getattribute__(self, '_source')
+            reactor = object.__getattribute__(self, '_reactor')
 
             old = getattr(source, __name)
             setattr(source, __name, __value)
@@ -85,9 +85,10 @@ class DeletingReactorView(__BaseReactorView):
         __BaseReactorView.__init__(source, reactor)
 
     def __delattr__(self, __name: str) -> None:
-        with self.__dict__['_lock']:
-            source = self.__dict__['_source']
+        with object.__getattribute__(self, '_lock'):
+            source = object.__getattribute__(self, '_source')
+            reactor = object.__getattribute__(self, '_reactor')
 
             last_value = getattr(source, __name)
             delattr(source, __name)
-            self.__dict__['_reactor'].emit(DeletingReactorViewEvent(self, source, __name, last_value))
+            reactor.emit(DeletingReactorViewEvent(self, source, __name, last_value))

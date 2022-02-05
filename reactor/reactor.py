@@ -13,6 +13,9 @@ class AbstractReactor:
     def emit(self, event: Event):
         raise NotImplementedError()
 
+    def component_iter(self) -> Iterator:
+        raise NotImplementedError()
+
 class SimpleReactor:
     def __init__(self):
         self._components: list[Component] = []
