@@ -4,6 +4,7 @@ from concurrent.futures import Future, wait
 from typing import Any, Callable
 from reactor.returningevent import EmittedFlagBlockingEvent, ReturningEvent, SequentialReturningEvent
 from reactor.reactor import Component
+from reactor.component import Distributor
 
 class __NoInstance:
     pass
@@ -37,6 +38,9 @@ class FactoryComponent(Component):
         except:
             return None
 
+    def get_accepted_instance_types(self) -> set[type]:
+        return self._accepted_instance_types
+
     def on_event(self, reactor, event) -> None:
         if isinstance(event, FabricationEvent) and event.get_instance_type() in self._accepted_instance_types:
             def asnc():
@@ -66,3 +70,10 @@ class AttributesAppender(FactoryComponent):
         for k, v in self._attribute_creators.items():
             setattr(previous_instance, k, v(previous_instance, event))
         return previous_instance
+
+class FactoryDistributor(Distributor):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def must_handle_event(self, reactor, event) -> bool:
+        return isinstance(event, FabricationEvent)

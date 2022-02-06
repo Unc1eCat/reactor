@@ -1,3 +1,4 @@
 import pytest as pt
 
-pt.main()
+if __name__ == '__main__':
+    pt.main()

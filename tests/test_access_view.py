@@ -16,10 +16,25 @@ def test_access_view():
         **ALL_PUBLIC,
         'owner': '!r !w !d',
     })
+    assert not access_config.readability['owner']
+    assert not access_config.writability['owner']
+    assert not access_config.deletability['owner']
 
     dog_view = AccessView(dog_hank, access_config)
 
     assert dog_view.bread == 'corgi'
+    
+    assert dog_view.age == 5
+    dog_view.age = 6
+    assert dog_view.age == 6
 
     with pt.raises(AttributeError):
         print(dog_view.owner)
+        dog_view.owner = 'Mike'
+        del dog_view.owner
+    
+    del dog_view.name
+    with pt.raises(AttributeError):
+        print(dog_view.name)
+    with pt.raises(AttributeError):
+        del dog_view.name

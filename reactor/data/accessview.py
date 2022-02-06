@@ -57,9 +57,9 @@ class AccessConfig:
             if 'r' in rule:
                 self.readability[k] = not '!r' in rule
             if 'w' in rule:
-                self.readability[k] = not '!w' in rule
+                self.writability[k] = not '!w' in rule
             if 'd' in rule:
-                self.readability[k] = not '!d' in rule
+                self.deletability[k] = not '!d' in rule
 
 
 def _check_name(name: str, access_rules: dict[Union[re.Pattern, str], bool]):
@@ -82,7 +82,7 @@ class AccessView:
     def __init__(self, source: Any, access_config: AccessConfig) -> None:
         object.__setattr__(self, '_source', source)
         object.__setattr__(self, '_access_config', access_config)
-
+    
     def __getattribute__(self, __name: str) -> Any:
         source = object.__getattribute__(self, '_source')
         access_config = object.__getattribute__(self, '_access_config')

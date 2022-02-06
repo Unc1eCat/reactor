@@ -1,16 +1,29 @@
-import logging
-from typing import Any, Callable
+from mimetypes import init
+from typing import Any, Callable, Iterator
 from reactor.event import Event
 
 class Component():
     def on_event(self, reactor, event: Event) -> None:
         pass
 
-class Distributor(Component):
+class ComponentContainer:
+    def __init__(self) -> None:
+        self._components = []
+
+    def __init__(self, components: list[Component]) -> None:
+        self._components = components
+
+    def add_component(self, component: Component):
+        self._components.append(component)
+    
+    def components_iter(self) -> Iterator:
+        return iter(self._components)
+
+class Distributor(Component, ComponentContainer):
     """ "must_handle_event" method checks if the distributor will deliver the event to components added to it """
     def __init__(self) -> None:
-        super().__init__()
-        self._components: list[Component] = []
+        super(ComponentContainer, self).__init__()
+        super(Component, self).__init__()
     
     def must_handle_event(self, reactor, event: Event) -> bool:
         """ Returns if the event must be handled by the distributor """

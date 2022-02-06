@@ -5,7 +5,7 @@ import threading
 from typing import Any
 from reactor.event import EmittedFlagBlockingEvent, Event
 
-from reactor.reactor import Component
+from reactor.component import Component
 
 class ReturningEvent(Event):
     def __init__(self, source_component) -> None:
