@@ -3,8 +3,8 @@ from collections import OrderedDict
 from concurrent.futures import Future, wait
 from typing import Any, Callable
 from reactor.returningevent import EmittedFlagBlockingEvent, ReturningEvent, SequentialReturningEvent
-from reactor.reactor import Component
 from reactor.component import Distributor
+from reactor.injection import BaseNamedInjectable
 
 class __NoInstance:
     pass
@@ -71,9 +71,13 @@ class AttributesAppender(FactoryComponent):
             setattr(previous_instance, k, v(previous_instance, event))
         return previous_instance
 
-class FactoryDistributor(Distributor):
-    def __init__(self) -> None:
-        super().__init__()
+class FactoryDistributor(Distributor, BaseNamedInjectable):
+    def __init__(self, injectable_name = 'factory_distributor') -> None:
+        super(Distributor, self).__init__()
+        super(BaseNamedInjectable, self).__init__(injectable_name)
 
     def must_handle_event(self, reactor, event) -> bool:
         return isinstance(event, FabricationEvent)
+
+    def get_injectable_name(self) -> str:
+        return self._injectable_name

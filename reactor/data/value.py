@@ -1,7 +1,8 @@
 from typing import Any, Callable
-from reactor.reactor.event import Event
+from weakref import WeakSet
+from reactor.event import Event
 
-from reactor.reactor.reactor import AbstractReactor
+from reactor.abstractreactor import AbstractReactor
 
 class __NoValue:
         pass
@@ -15,7 +16,7 @@ class val:
 
     def __init__(self, value: Any) -> None:
         self._value = value
-        self._listeners: set = set()
+        self._listeners: WeakSet = WeakSet()
 
     def set(self, new_value):
         old = self._value
@@ -66,14 +67,15 @@ class rval:
         self._value = value
 
     def set(self, new_value, reactor: AbstractReactor):
+        old = self._value
         self._value = new_value
-        self.notify_listeners(reactor)
+        self.notify_reactor(reactor, old, new_value)
 
     def get(self):
         return self._value
 
-    def notify_listeners(self, reactor: AbstractReactor):
-        reactor.emit()
+    def notify_reactor(self, reactor: AbstractReactor, old_value: Any, new_value: Any):
+        reactor.emit(RValEvent(self, old_value, self._value))
     
     def __call__(self, new_value = __NO_VALUE) -> Any:
         if new_value == __NO_VALUE:

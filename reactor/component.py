@@ -6,7 +6,7 @@ class Component():
     def on_event(self, reactor, event: Event) -> None:
         pass
 
-class ComponentContainer:
+class ComponentContainer():
     def __init__(self) -> None:
         self._components = []
 
